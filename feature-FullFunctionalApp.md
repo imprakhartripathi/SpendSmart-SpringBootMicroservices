@@ -1,7 +1,7 @@
 # Branch: feature/FullFunctionalApp
 
 ## Origin
-- Branched from: `feature/CoreDomainApiFoundation`
+- Branched from: `feature/AppInitialSetup`
 - Repository: `SpendSmart-SpringBootMicroservices`
 
 ## Scope
@@ -23,12 +23,23 @@
 - Implemented live analytics aggregation from expense/income services:
   - Monthly summary, yearly summary, category breakdown, trends, cashflow, forecast, health score.
 - Added and fixed service test profile properties for inter-service client placeholders.
+- Integrated full platform services around domain microservices:
+  - Enabled and configured `config-server` as Spring Cloud Config Server.
+  - Enabled and configured `discovery-server` as Eureka Server.
+  - Integrated `api-gateway` with Eureka + Config Server and service routes for all domain APIs.
+- Migrated inter-service communication to discovery-aware load-balanced service IDs:
+  - Removed localhost-bound service defaults from internal service-to-service URLs.
+  - Added `@LoadBalanced RestTemplate` where required.
+- Added Spring Cloud Config + Eureka client integration across all domain services.
+- Standardized property handling with shell-injected environment variables and safe local fallbacks in `application.properties`.
 
 ## Verification
 - Compile verification:
   - `./mvnw -pl auth-service,expense-service,income-service,category-service,budget-service,analytics-service,recurring-service,notification-service -DskipTests compile`
 - Test verification:
   - `./mvnw -pl auth-service,expense-service,income-service,category-service,budget-service,analytics-service,recurring-service,notification-service test`
+  - Result: `BUILD SUCCESS`
+  - `./mvnw -pl config-server,discovery-server,api-gateway,auth-service,expense-service,income-service,category-service,budget-service,analytics-service,recurring-service,notification-service test`
   - Result: `BUILD SUCCESS`
 
 ## Next Branch Origin
