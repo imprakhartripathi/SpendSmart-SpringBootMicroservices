@@ -1,7 +1,7 @@
-# Branch: feature/FullFunctionalApp
+# Branch: feature/CoreMVPFeatures
 
 ## Origin
-- Branched from: `feature/AppInitialSetup`
+- Branched from: `feature/CoreDomainApiFoundation`
 - Repository: `SpendSmart-SpringBootMicroservices`
 
 ## Scope
@@ -43,5 +43,5 @@
   - Result: `BUILD SUCCESS`
 
 ## Next Branch Origin
-- Suggested next branch should originate from: `feature/FullFunctionalApp`
+- Suggested next branch should originate from: `feature/CoreMVPFeatures`
 - Suggested next branch focus: `feature/PlatformAdminAndExports`
