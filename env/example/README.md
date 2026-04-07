@@ -1,6 +1,7 @@
-# IntelliJ Env Files (Backend)
+# Backend Env Templates
 
-Use these files per run configuration in IntelliJ (EnvFile plugin or copy-paste).
+Use these example files to create your local IntelliJ env files (for example under `env/intellij/`).
+They are safe templates and should be committed.
 
 Why separate files:
 - Variables like `SERVER_PORT` and `DB_URL` are service-specific.
@@ -21,4 +22,3 @@ Files:
 
 Optional frontend reference:
 - `frontend.env`
-
