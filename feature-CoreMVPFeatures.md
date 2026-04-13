@@ -46,6 +46,14 @@
 - Implemented Redis usage:
   - `auth-service` token revocation now writes and checks Redis keys with TTL (with safe in-memory fallback).
   - `analytics-service` now uses Redis-backed caching for summary/trend/forecast/health endpoints.
+- Added no-Redis-safe analytics fallback:
+  - `analytics-service` now defaults `spring.cache.type` to `simple`.
+  - Redis cache manager loads only when `spring.cache.type=redis`, preventing analytics 500s when Redis is not running.
+- Added OAuth2 login support in `auth-service`:
+  - Added provider support for `GITHUB` (alongside `LOCAL`, `GOOGLE`).
+  - Added `/auth/oauth2/authorize/{provider}` to generate Google/GitHub authorization URLs.
+  - Added `/auth/oauth2/callback/{provider}` to exchange authorization code, fetch user profile, upsert user, and issue SpendSmart JWT.
+  - Added env-driven OAuth settings for Google and GitHub (`GOOGLE_*`, `GITHUB_*`).
 - Expanded backend env templates under `env/example` for RabbitMQ, Redis, alert rule, and SMTP settings.
 
 ## Verification
@@ -58,6 +66,9 @@
   - Result: `BUILD SUCCESS`
 - Post integration compile verification:
   - `./mvnw -f SpendSmart-SpringBootMicroservices/pom.xml -pl auth-service,expense-service,income-service,recurring-service,notification-service,analytics-service,api-gateway -am test -DskipTests`
+  - Result: `BUILD SUCCESS`
+- OAuth and cache fallback compile verification:
+  - `./mvnw -f SpendSmart-SpringBootMicroservices/pom.xml -pl auth-service,analytics-service -am test -DskipTests`
   - Result: `BUILD SUCCESS`
 
 ## Next Branch Origin

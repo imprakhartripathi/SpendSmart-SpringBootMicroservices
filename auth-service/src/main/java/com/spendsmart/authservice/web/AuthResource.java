@@ -4,6 +4,8 @@ import com.spendsmart.authservice.domain.User;
 import com.spendsmart.authservice.dto.CurrencyUpdateRequest;
 import com.spendsmart.authservice.dto.LoginRequest;
 import com.spendsmart.authservice.dto.LoginResponse;
+import com.spendsmart.authservice.dto.OAuthAuthorizeResponse;
+import com.spendsmart.authservice.dto.OAuthCallbackRequest;
 import com.spendsmart.authservice.dto.LogoutRequest;
 import com.spendsmart.authservice.dto.MonthlyBudgetUpdateRequest;
 import com.spendsmart.authservice.dto.PasswordChangeRequest;
@@ -12,6 +14,7 @@ import com.spendsmart.authservice.dto.RefreshTokenRequest;
 import com.spendsmart.authservice.dto.RegisterRequest;
 import com.spendsmart.authservice.dto.UserProfileResponse;
 import com.spendsmart.authservice.service.AuthService;
+import com.spendsmart.authservice.service.OAuthService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -32,9 +35,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthResource {
 
     private final AuthService authService;
+    private final OAuthService oAuthService;
 
-    public AuthResource(AuthService authService) {
+    public AuthResource(AuthService authService, OAuthService oAuthService) {
         this.authService = authService;
+        this.oAuthService = oAuthService;
     }
 
     @PostMapping("/register")
@@ -74,6 +79,16 @@ public class AuthResource {
                 authService.getUserIdFromToken(refreshedToken),
                 authService.getEmailFromToken(refreshedToken)
         );
+    }
+
+    @GetMapping("/oauth2/authorize/{provider}")
+    public OAuthAuthorizeResponse authorizeOAuth(@PathVariable String provider) {
+        return oAuthService.getAuthorizationUrl(provider);
+    }
+
+    @PostMapping("/oauth2/callback/{provider}")
+    public LoginResponse oauthCallback(@PathVariable String provider, @Valid @RequestBody OAuthCallbackRequest request) {
+        return oAuthService.loginWithAuthorizationCode(provider, request.code());
     }
 
     @GetMapping("/profile/{userId}")
