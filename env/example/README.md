@@ -22,3 +22,7 @@ Files:
 
 Optional frontend reference:
 - `frontend.env`
+
+Infra notes:
+- RabbitMQ env keys are included in services that publish/consume email events.
+- Redis env keys are included for `auth-service` (token revocation) and `analytics-service` (cache).

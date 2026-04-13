@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +25,17 @@ public class NotifServiceImpl implements NotifService {
     private static final Logger LOGGER = LoggerFactory.getLogger(NotifServiceImpl.class);
 
     private final NotificationRepository notificationRepository;
+    private final JavaMailSender mailSender;
+    private final String mailFrom;
 
-    public NotifServiceImpl(NotificationRepository notificationRepository) {
+    public NotifServiceImpl(
+            NotificationRepository notificationRepository,
+            ObjectProvider<JavaMailSender> mailSenderProvider,
+            @Value("${app.mail.from:no-reply@spendsmart.local}") String mailFrom
+    ) {
         this.notificationRepository = notificationRepository;
+        this.mailSender = mailSenderProvider.getIfAvailable();
+        this.mailFrom = mailFrom;
     }
 
     @Override
@@ -116,6 +128,40 @@ public class NotifServiceImpl implements NotifService {
     @Override
     public void sendEmail(Long recipientId, String subject, String body) {
         LOGGER.info("Email dispatch simulated. recipientId={}, subject={}, body={}", recipientId, subject, body);
+    }
+
+    @Override
+    public void sendEmail(String recipientEmail, String subject, String body) {
+        if (recipientEmail == null || recipientEmail.isBlank()) {
+            LOGGER.warn("Skipping email dispatch because recipient email is missing. subject={}", subject);
+            return;
+        }
+
+        if (mailSender == null) {
+            LOGGER.info(
+                    "Email sender not configured. simulated dispatch recipientEmail={}, subject={}, body={}",
+                    recipientEmail,
+                    subject,
+                    body
+            );
+            return;
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(recipientEmail);
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+        } catch (Exception exception) {
+            LOGGER.warn(
+                    "Email dispatch failed. recipientEmail={}, subject={}, reason={}",
+                    recipientEmail,
+                    subject,
+                    exception.getMessage()
+            );
+        }
     }
 
     @Override

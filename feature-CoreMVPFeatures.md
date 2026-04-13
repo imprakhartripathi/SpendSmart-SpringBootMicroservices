@@ -32,6 +32,21 @@
   - Added `@LoadBalanced RestTemplate` where required.
 - Added Spring Cloud Config + Eureka client integration across all domain services.
 - Standardized property handling with shell-injected environment variables and safe local fallbacks in `application.properties`.
+- Fixed API Gateway route matching/rewrite for base collection endpoints:
+  - Replaced brittle `RewritePath` regex routes with explicit base path matching + `StripPrefix=1`.
+  - Resolved create-flow failures for endpoints like `/api/categories` and `/api/expenses`.
+- Added RabbitMQ-driven email event pipeline:
+  - `auth-service` publishes welcome events on successful signup.
+  - `recurring-service` publishes autopay reminder events for due-soon recurring entries.
+  - `expense-service` publishes big-expense alerts when expense amount exceeds configured threshold.
+  - `notification-service` consumes events from queue, stores notifications, and dispatches email.
+- Implemented big-expense business rule:
+  - Added `income-service` endpoint for average monthly income over trailing months.
+  - `expense-service` now compares each expense against `BIG_EXPENSE_THRESHOLD_PERCENT` of average monthly income.
+- Implemented Redis usage:
+  - `auth-service` token revocation now writes and checks Redis keys with TTL (with safe in-memory fallback).
+  - `analytics-service` now uses Redis-backed caching for summary/trend/forecast/health endpoints.
+- Expanded backend env templates under `env/example` for RabbitMQ, Redis, alert rule, and SMTP settings.
 
 ## Verification
 - Compile verification:
@@ -40,6 +55,9 @@
   - `./mvnw -pl auth-service,expense-service,income-service,category-service,budget-service,analytics-service,recurring-service,notification-service test`
   - Result: `BUILD SUCCESS`
   - `./mvnw -pl config-server,discovery-server,api-gateway,auth-service,expense-service,income-service,category-service,budget-service,analytics-service,recurring-service,notification-service test`
+  - Result: `BUILD SUCCESS`
+- Post integration compile verification:
+  - `./mvnw -f SpendSmart-SpringBootMicroservices/pom.xml -pl auth-service,expense-service,income-service,recurring-service,notification-service,analytics-service,api-gateway -am test -DskipTests`
   - Result: `BUILD SUCCESS`
 
 ## Next Branch Origin

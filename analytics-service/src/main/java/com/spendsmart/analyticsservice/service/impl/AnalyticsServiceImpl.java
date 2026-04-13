@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +66,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-monthly-summary", key = "#userId + ':' + #year + ':' + #month")
     public Map<String, Object> getMonthlySummary(Long userId, int year, int month) {
         BigDecimal income = incomeClient.getTotalByMonth(userId, year, month);
         BigDecimal expenses = expenseClient.getTotalByMonth(userId, year, month);
@@ -87,6 +89,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-yearly-summary", key = "#userId + ':' + #year")
     public Map<String, Object> getYearlySummary(Long userId, int year) {
         List<Map<String, Object>> monthlyBreakdown = new ArrayList<>();
         BigDecimal annualIncome = BigDecimal.ZERO;
@@ -119,6 +122,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-category-breakdown", key = "#userId + ':' + #year + ':' + #month")
     public List<Map<String, Object>> getExpenseBreakdownByCategory(Long userId, int year, int month) {
         Map<String, BigDecimal> totals = new LinkedHashMap<>();
 
@@ -140,6 +144,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-income-expense-trend", key = "#userId + ':' + #trailingMonths")
     public List<Map<String, Object>> getIncomeVsExpenseTrend(Long userId, int trailingMonths) {
         return buildTrailingMetrics(userId, trailingMonths).stream()
                 .map(metric -> {
@@ -154,6 +159,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-savings-rate-trend", key = "#userId + ':' + #trailingMonths")
     public List<Map<String, Object>> getSavingsRateTrend(Long userId, int trailingMonths) {
         return buildTrailingMetrics(userId, trailingMonths).stream()
                 .map(metric -> {
@@ -167,6 +173,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-top-categories", key = "#userId + ':' + #year + ':' + #month")
     public List<Map<String, Object>> getTopSpendingCategories(Long userId, int year, int month) {
         return getExpenseBreakdownByCategory(userId, year, month).stream()
                 .limit(5)
@@ -175,6 +182,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-daily-trend", key = "#userId + ':' + #year + ':' + #month")
     public List<Map<String, Object>> getDailyExpenseTrend(Long userId, int year, int month) {
         Map<Integer, BigDecimal> dailyTotals = new LinkedHashMap<>();
         int daysInMonth = YearMonth.of(year, month).lengthOfMonth();
@@ -204,6 +212,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-cashflow", key = "#userId + ':' + #trailingMonths")
     public List<Map<String, Object>> getCashflowData(Long userId, int trailingMonths) {
         return buildTrailingMetrics(userId, trailingMonths).stream()
                 .map(metric -> {
@@ -219,6 +228,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "analytics-forecast", key = "#userId")
     public Map<String, Object> getSpendingForecast(Long userId) {
         List<MonthMetric> metrics = buildTrailingMetrics(userId, 3);
         if (metrics.isEmpty()) {
@@ -260,6 +270,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = "analytics-health-score",
+            key = "#userId + ':' + (#monthlyBudgetGoal == null ? 'null' : #monthlyBudgetGoal.toPlainString())"
+    )
     public Map<String, Object> getFinancialHealthScore(Long userId, BigDecimal monthlyBudgetGoal) {
         List<MonthMetric> metrics = buildTrailingMetrics(userId, 12);
         if (metrics.isEmpty()) {

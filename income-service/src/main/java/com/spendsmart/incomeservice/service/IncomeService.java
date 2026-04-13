@@ -27,6 +27,8 @@ public interface IncomeService {
 
     BigDecimal getTotalIncomeByMonth(Long userId, int year, int month);
 
+    BigDecimal getAverageMonthlyIncome(Long userId, int trailingMonths);
+
     List<Income> getRecurringIncomes(Long userId);
 
     List<Income> searchIncome(Long userId, String keyword);

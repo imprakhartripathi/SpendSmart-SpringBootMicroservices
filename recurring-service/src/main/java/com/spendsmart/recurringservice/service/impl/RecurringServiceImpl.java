@@ -1,9 +1,10 @@
 package com.spendsmart.recurringservice.service.impl;
 
-import com.spendsmart.recurringservice.client.NotificationClient;
+import com.spendsmart.recurringservice.client.AuthClient;
 import com.spendsmart.recurringservice.client.TransactionClient;
 import com.spendsmart.recurringservice.domain.RecurringTransaction;
 import com.spendsmart.recurringservice.enums.RecurringFrequency;
+import com.spendsmart.recurringservice.messaging.NotificationEventPublisher;
 import com.spendsmart.recurringservice.repository.RecurringRepository;
 import com.spendsmart.recurringservice.service.RecurringService;
 import jakarta.persistence.EntityNotFoundException;
@@ -26,16 +27,19 @@ public class RecurringServiceImpl implements RecurringService {
 
     private final RecurringRepository recurringRepository;
     private final TransactionClient transactionClient;
-    private final NotificationClient notificationClient;
+    private final AuthClient authClient;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     public RecurringServiceImpl(
             RecurringRepository recurringRepository,
             TransactionClient transactionClient,
-            NotificationClient notificationClient
+            AuthClient authClient,
+            NotificationEventPublisher notificationEventPublisher
     ) {
         this.recurringRepository = recurringRepository;
         this.transactionClient = transactionClient;
-        this.notificationClient = notificationClient;
+        this.authClient = authClient;
+        this.notificationEventPublisher = notificationEventPublisher;
     }
 
     @Override
@@ -160,11 +164,13 @@ public class RecurringServiceImpl implements RecurringService {
         List<RecurringTransaction> dueSoon = recurringRepository.findByNextDueDateAndIsActive(reminderDate, true);
 
         for (RecurringTransaction recurring : dueSoon) {
-            notificationClient.sendRecurringReminder(
-                    recurring.getUserId(),
-                    recurring.getRecurringId(),
-                    recurring.getTitle(),
-                    recurring.getNextDueDate()
+            authClient.getUserSummary(recurring.getUserId()).ifPresent(user ->
+                    notificationEventPublisher.publishAutopayReminder(
+                            recurring,
+                            recurring.getNextDueDate(),
+                            user.fullName(),
+                            user.email()
+                    )
             );
         }
 
