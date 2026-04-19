@@ -8,6 +8,7 @@ import com.spendsmart.authservice.service.AuthService;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +25,13 @@ public class AuthServiceImpl implements AuthService {
     public AuthServiceImpl(
             UserRepository userRepository,
             JwtTokenService jwtTokenService,
-            NotificationEventPublisher notificationEventPublisher
+            ObjectProvider<NotificationEventPublisher> notificationEventPublisherProvider
     ) {
         this.userRepository = userRepository;
         this.jwtTokenService = jwtTokenService;
-        this.notificationEventPublisher = notificationEventPublisher;
+        this.notificationEventPublisher = notificationEventPublisherProvider == null
+                ? null
+                : notificationEventPublisherProvider.getIfAvailable();
     }
 
     @Override
@@ -38,7 +41,9 @@ public class AuthServiceImpl implements AuthService {
         }
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         User saved = userRepository.save(user);
-        notificationEventPublisher.publishWelcome(saved);
+        if (notificationEventPublisher != null) {
+            notificationEventPublisher.publishWelcome(saved);
+        }
         return saved;
     }
 

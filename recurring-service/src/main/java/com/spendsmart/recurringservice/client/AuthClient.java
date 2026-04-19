@@ -15,7 +15,7 @@ public class AuthClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${app.services.auth-url}")
+    @Value("${app.services.auth-url:http://auth-service}")
     private String authServiceUrl;
 
     public AuthClient(RestTemplate restTemplate) {

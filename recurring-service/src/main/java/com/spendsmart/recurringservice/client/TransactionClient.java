@@ -21,10 +21,10 @@ public class TransactionClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${app.services.expense-url}")
+    @Value("${app.services.expense-url:http://expense-service}")
     private String expenseServiceUrl;
 
-    @Value("${app.services.income-url}")
+    @Value("${app.services.income-url:http://income-service}")
     private String incomeServiceUrl;
 
     public TransactionClient(RestTemplate restTemplate) {

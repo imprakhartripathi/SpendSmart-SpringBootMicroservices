@@ -15,7 +15,7 @@ public class IncomeClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${app.services.income-url}")
+    @Value("${app.services.income-url:http://income-service}")
     private String incomeServiceUrl;
 
     public IncomeClient(RestTemplate restTemplate) {

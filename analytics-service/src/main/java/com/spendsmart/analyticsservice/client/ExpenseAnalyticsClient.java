@@ -20,7 +20,7 @@ public class ExpenseAnalyticsClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${app.services.expense-url}")
+    @Value("${app.services.expense-url:http://expense-service}")
     private String expenseServiceUrl;
 
     public ExpenseAnalyticsClient(RestTemplate restTemplate) {

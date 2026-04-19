@@ -18,15 +18,18 @@ public class NotificationEventPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final String exchange;
     private final String autopayRoutingKey;
+    private final boolean messagingEnabled;
 
     public NotificationEventPublisher(
             RabbitTemplate rabbitTemplate,
-            @Value("${app.messaging.exchange}") String exchange,
-            @Value("${app.messaging.routing.autopay}") String autopayRoutingKey
+            @Value("${app.messaging.exchange:spendsmart.events}") String exchange,
+            @Value("${app.messaging.routing.autopay:email.autopay}") String autopayRoutingKey,
+            @Value("${app.messaging.enabled:false}") boolean messagingEnabled
     ) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.autopayRoutingKey = autopayRoutingKey;
+        this.messagingEnabled = messagingEnabled;
     }
 
     public void publishAutopayReminder(
@@ -35,6 +38,10 @@ public class NotificationEventPublisher {
             String recipientName,
             String recipientEmail
     ) {
+        if (!messagingEnabled) {
+            return;
+        }
+
         try {
             Map<String, Object> event = new LinkedHashMap<>();
             event.put("eventType", "AUTOPAY_EMAIL");
