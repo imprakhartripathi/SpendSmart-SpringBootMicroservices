@@ -21,7 +21,7 @@ public class BudgetClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${app.services.budget-url}")
+    @Value("${app.services.budget-url:http://budget-service}")
     private String budgetServiceUrl;
 
     public BudgetClient(RestTemplate restTemplate) {

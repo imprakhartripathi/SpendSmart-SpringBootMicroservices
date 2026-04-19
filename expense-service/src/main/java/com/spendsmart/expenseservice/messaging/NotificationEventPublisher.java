@@ -18,15 +18,18 @@ public class NotificationEventPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final String exchange;
     private final String bigExpenseRoutingKey;
+    private final boolean messagingEnabled;
 
     public NotificationEventPublisher(
             RabbitTemplate rabbitTemplate,
-            @Value("${app.messaging.exchange}") String exchange,
-            @Value("${app.messaging.routing.big-expense}") String bigExpenseRoutingKey
+            @Value("${app.messaging.exchange:spendsmart.events}") String exchange,
+            @Value("${app.messaging.routing.big-expense:email.big-expense}") String bigExpenseRoutingKey,
+            @Value("${app.messaging.enabled:false}") boolean messagingEnabled
     ) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.bigExpenseRoutingKey = bigExpenseRoutingKey;
+        this.messagingEnabled = messagingEnabled;
     }
 
     public void publishBigExpenseAlert(
@@ -36,6 +39,10 @@ public class NotificationEventPublisher {
             String recipientName,
             String recipientEmail
     ) {
+        if (!messagingEnabled) {
+            return;
+        }
+
         try {
             Map<String, Object> event = new LinkedHashMap<>();
             event.put("eventType", "BIG_EXPENSE_EMAIL");

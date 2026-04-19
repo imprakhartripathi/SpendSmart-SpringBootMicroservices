@@ -14,12 +14,12 @@ import org.springframework.context.annotation.Configuration;
 public class MessagingConfig {
 
     @Bean
-    public TopicExchange spendSmartEventsExchange(@Value("${app.messaging.exchange}") String exchangeName) {
+    public TopicExchange spendSmartEventsExchange(@Value("${app.messaging.exchange:spendsmart.events}") String exchangeName) {
         return new TopicExchange(exchangeName, true, false);
     }
 
     @Bean
-    public Queue emailEventQueue(@Value("${app.messaging.email-queue}") String queueName) {
+    public Queue emailEventQueue(@Value("${app.messaging.email-queue:spendsmart.notification.email}") String queueName) {
         return new Queue(queueName, true);
     }
 
@@ -27,7 +27,7 @@ public class MessagingConfig {
     public Binding emailEventBinding(
             Queue emailEventQueue,
             TopicExchange spendSmartEventsExchange,
-            @Value("${app.messaging.routing-pattern}") String routingPattern
+            @Value("${app.messaging.routing-pattern:email.*}") String routingPattern
     ) {
         return BindingBuilder.bind(emailEventQueue).to(spendSmartEventsExchange).with(routingPattern);
     }

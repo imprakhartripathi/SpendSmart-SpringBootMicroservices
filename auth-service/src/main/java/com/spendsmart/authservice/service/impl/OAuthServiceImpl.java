@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -57,11 +58,13 @@ public class OAuthServiceImpl implements OAuthService {
     public OAuthServiceImpl(
             UserRepository userRepository,
             JwtTokenService jwtTokenService,
-            NotificationEventPublisher notificationEventPublisher
+            ObjectProvider<NotificationEventPublisher> notificationEventPublisherProvider
     ) {
         this.userRepository = userRepository;
         this.jwtTokenService = jwtTokenService;
-        this.notificationEventPublisher = notificationEventPublisher;
+        this.notificationEventPublisher = notificationEventPublisherProvider == null
+                ? null
+                : notificationEventPublisherProvider.getIfAvailable();
     }
 
     @Override
@@ -85,6 +88,9 @@ public class OAuthServiceImpl implements OAuthService {
 
         User user = upsertOAuthUser(authProvider, profile);
         String token = jwtTokenService.generateToken(user.getUserId(), user.getEmail());
+        if (notificationEventPublisher != null) {
+            notificationEventPublisher.publishWelcome(user);
+        }
         return new LoginResponse(token, user.getUserId(), user.getEmail());
     }
 
