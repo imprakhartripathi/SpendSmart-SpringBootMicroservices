@@ -25,5 +25,7 @@ public interface NotifService {
 
     void sendEmail(Long recipientId, String subject, String body);
 
+    void sendEmail(String recipientEmail, String subject, String body);
+
     List<Notification> getAll();
 }

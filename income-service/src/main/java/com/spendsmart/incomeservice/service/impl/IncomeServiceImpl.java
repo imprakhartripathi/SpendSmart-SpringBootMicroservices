@@ -6,6 +6,7 @@ import com.spendsmart.incomeservice.repository.IncomeRepository;
 import com.spendsmart.incomeservice.service.IncomeService;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -93,6 +94,20 @@ public class IncomeServiceImpl implements IncomeService {
     public BigDecimal getTotalIncomeByMonth(Long userId, int year, int month) {
         YearMonth yearMonth = YearMonth.of(year, month);
         return incomeRepository.sumAmountByUserIdAndPeriod(userId, yearMonth.atDay(1), yearMonth.atEndOfMonth());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getAverageMonthlyIncome(Long userId, int trailingMonths) {
+        int months = trailingMonths <= 0 ? 1 : trailingMonths;
+        YearMonth current = YearMonth.now();
+        YearMonth start = current.minusMonths(months - 1L);
+        BigDecimal total = incomeRepository.sumAmountByUserIdAndPeriod(
+                userId,
+                start.atDay(1),
+                current.atEndOfMonth()
+        );
+        return total.divide(BigDecimal.valueOf(months), 2, RoundingMode.HALF_UP);
     }
 
     @Override

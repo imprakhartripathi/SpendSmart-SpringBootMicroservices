@@ -1,8 +1,11 @@
 package com.spendsmart.expenseservice.service.impl;
 
+import com.spendsmart.expenseservice.client.AuthClient;
 import com.spendsmart.expenseservice.client.BudgetClient;
+import com.spendsmart.expenseservice.client.IncomeClient;
 import com.spendsmart.expenseservice.domain.Expense;
 import com.spendsmart.expenseservice.enums.ExpenseType;
+import com.spendsmart.expenseservice.messaging.NotificationEventPublisher;
 import com.spendsmart.expenseservice.repository.ExpenseRepository;
 import com.spendsmart.expenseservice.service.ExpenseService;
 import jakarta.persistence.EntityNotFoundException;
@@ -10,6 +13,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,18 +23,39 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ExpenseServiceImpl implements ExpenseService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExpenseServiceImpl.class);
+
     private final ExpenseRepository expenseRepository;
     private final BudgetClient budgetClient;
+    private final AuthClient authClient;
+    private final IncomeClient incomeClient;
+    private final NotificationEventPublisher notificationEventPublisher;
+    private final BigDecimal bigExpenseThresholdPercent;
+    private final int bigExpenseAverageMonths;
 
-    public ExpenseServiceImpl(ExpenseRepository expenseRepository, BudgetClient budgetClient) {
+    public ExpenseServiceImpl(
+            ExpenseRepository expenseRepository,
+            BudgetClient budgetClient,
+            AuthClient authClient,
+            IncomeClient incomeClient,
+            NotificationEventPublisher notificationEventPublisher,
+            @Value("${app.rules.big-expense-threshold-percent:20}") BigDecimal bigExpenseThresholdPercent,
+            @Value("${app.rules.big-expense-average-months:6}") int bigExpenseAverageMonths
+    ) {
         this.expenseRepository = expenseRepository;
         this.budgetClient = budgetClient;
+        this.authClient = authClient;
+        this.incomeClient = incomeClient;
+        this.notificationEventPublisher = notificationEventPublisher;
+        this.bigExpenseThresholdPercent = bigExpenseThresholdPercent;
+        this.bigExpenseAverageMonths = bigExpenseAverageMonths;
     }
 
     @Override
     public Expense addExpense(Expense expense) {
         Expense saved = expenseRepository.save(expense);
         applyBudgetDelta(saved.getUserId(), saved.getCategoryId(), saved.getAmount());
+        maybePublishBigExpenseAlert(saved);
         return saved;
     }
 
@@ -94,6 +121,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             applyBudgetDelta(saved.getUserId(), saved.getCategoryId(), saved.getAmount());
         }
 
+        maybePublishBigExpenseAlert(saved);
         return saved;
     }
 
@@ -151,5 +179,39 @@ public class ExpenseServiceImpl implements ExpenseService {
         for (Long budgetId : budgetIds) {
             budgetClient.updateSpentAmount(budgetId, delta);
         }
+    }
+
+    private void maybePublishBigExpenseAlert(Expense expense) {
+        if (expense.getType() != ExpenseType.EXPENSE || expense.getAmount() == null) {
+            return;
+        }
+        if (bigExpenseThresholdPercent == null || bigExpenseThresholdPercent.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        int trailingMonths = bigExpenseAverageMonths <= 0 ? 6 : bigExpenseAverageMonths;
+        BigDecimal averageIncome = incomeClient.getAverageMonthlyIncome(expense.getUserId(), trailingMonths);
+        if (averageIncome.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        BigDecimal thresholdAmount = averageIncome
+                .multiply(bigExpenseThresholdPercent)
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+
+        if (expense.getAmount().compareTo(thresholdAmount) <= 0) {
+            return;
+        }
+
+        authClient.getUserSummary(expense.getUserId()).ifPresentOrElse(
+                user -> notificationEventPublisher.publishBigExpenseAlert(
+                        expense,
+                        averageIncome,
+                        thresholdAmount,
+                        user.fullName(),
+                        user.email()
+                ),
+                () -> LOGGER.warn("Skipping big-expense alert because user profile was unavailable for userId={}", expense.getUserId())
+        );
     }
 }

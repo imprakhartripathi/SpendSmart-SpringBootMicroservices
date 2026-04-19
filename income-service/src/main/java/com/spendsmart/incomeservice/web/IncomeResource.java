@@ -94,6 +94,14 @@ public class IncomeResource {
         return incomeService.getTotalIncomeByMonth(userId, year, month);
     }
 
+    @GetMapping("/average-monthly")
+    public BigDecimal getAverageMonthlyIncome(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "6") int months
+    ) {
+        return incomeService.getAverageMonthlyIncome(userId, months);
+    }
+
     @GetMapping("/recurring/{userId}")
     public List<Income> getRecurring(@PathVariable Long userId) {
         return incomeService.getRecurringIncomes(userId);

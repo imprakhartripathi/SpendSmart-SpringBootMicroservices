@@ -1,6 +1,7 @@
 package com.spendsmart.authservice.service.impl;
 
 import com.spendsmart.authservice.domain.User;
+import com.spendsmart.authservice.messaging.NotificationEventPublisher;
 import com.spendsmart.authservice.repository.UserRepository;
 import com.spendsmart.authservice.security.JwtTokenService;
 import com.spendsmart.authservice.service.AuthService;
@@ -17,11 +18,17 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final JwtTokenService jwtTokenService;
+    private final NotificationEventPublisher notificationEventPublisher;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthServiceImpl(UserRepository userRepository, JwtTokenService jwtTokenService) {
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            JwtTokenService jwtTokenService,
+            NotificationEventPublisher notificationEventPublisher
+    ) {
         this.userRepository = userRepository;
         this.jwtTokenService = jwtTokenService;
+        this.notificationEventPublisher = notificationEventPublisher;
     }
 
     @Override
@@ -30,7 +37,9 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Email is already registered");
         }
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        notificationEventPublisher.publishWelcome(saved);
+        return saved;
     }
 
     @Override
